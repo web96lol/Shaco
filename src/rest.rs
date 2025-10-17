@@ -1,4 +1,5 @@
-use serde::{Serialize, Deserialize};
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
 
 use crate::utils::{process_info, request::build_reqwest_client};
 
@@ -7,7 +8,7 @@ use crate::utils::{process_info, request::build_reqwest_client};
 pub struct RESTClient {
     client: reqwest::Client,
     remoting: bool,
-    pub lcu_client_info: LCUClientInfo
+    pub lcu_client_info: LCUClientInfo,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -49,10 +50,7 @@ impl RESTClient {
         let port = self.get_port();
         let req: serde_json::Value = self
             .client
-            .get(format!(
-                "https://127.0.0.1:{}{}",
-                port, endpoint
-            ))
+            .get(format!("https://127.0.0.1:{}{}", port, endpoint))
             .send()
             .await?
             .json()
@@ -68,37 +66,37 @@ impl RESTClient {
         body: T,
     ) -> Result<serde_json::Value, reqwest::Error> {
         let port = self.get_port();
-        let req: serde_json::Value = self
+        let response = self
             .client
-            .post(format!(
-                "https://127.0.0.1:{}{}",
-                port, endpoint
-            ))
+            .post(format!("https://127.0.0.1:{}{}", port, endpoint))
             .json(&body)
             .send()
-            .await?
-            .json()
             .await?;
 
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(serde_json::json!({ "status": 204 }));
+        }
+
+        let req: serde_json::Value = response.json().await?;
         Ok(req)
     }
 
     pub async fn post_no_body(
         &self,
-        endpoint: String
+        endpoint: String,
     ) -> Result<serde_json::Value, reqwest::Error> {
         let port = self.get_port();
-        let req: serde_json::Value = self
+        let response = self
             .client
-            .post(format!(
-                "https://127.0.0.1:{}{}",
-                port, endpoint
-            ))
+            .post(format!("https://127.0.0.1:{}{}", port, endpoint))
             .send()
-            .await?
-            .json()
             .await?;
 
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(serde_json::json!({ "status": 204 }));
+        }
+
+        let req: serde_json::Value = response.json().await?;
         Ok(req)
     }
 
@@ -109,35 +107,35 @@ impl RESTClient {
         body: T,
     ) -> Result<serde_json::Value, reqwest::Error> {
         let port = self.get_port();
-        let req: serde_json::Value = self
+        let response = self
             .client
-            .put(format!(
-                "https://127.0.0.1:{}{}",
-                port, endpoint
-            ))
+            .put(format!("https://127.0.0.1:{}{}", port, endpoint))
             .json(&body)
             .send()
-            .await?
-            .json()
             .await?;
 
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(serde_json::json!({ "status": 204 }));
+        }
+
+        let req: serde_json::Value = response.json().await?;
         Ok(req)
     }
 
     /// Make a delete request to the specified endpoint
     pub async fn delete(&self, endpoint: String) -> Result<serde_json::Value, reqwest::Error> {
         let port = self.get_port();
-        let req: serde_json::Value = self
+        let response = self
             .client
-            .delete(format!(
-                "https://127.0.0.1:{}{}",
-                port, endpoint
-            ))
+            .delete(format!("https://127.0.0.1:{}{}", port, endpoint))
             .send()
-            .await?
-            .json()
             .await?;
 
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(serde_json::json!({ "status": 204 }));
+        }
+
+        let req: serde_json::Value = response.json().await?;
         Ok(req)
     }
 }
