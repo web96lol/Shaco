@@ -1,5 +1,7 @@
 use std::{error::Error, fmt, fmt::Display};
 
+use reqwest::StatusCode;
+
 /// Errors that can occur when trying to get the Riot process information
 #[derive(Debug, Clone)]
 pub enum ProcessInfoError {
@@ -78,6 +80,47 @@ impl Error for IngameClientError {}
 impl Display for IngameClientError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(self, f)
+    }
+}
+
+/// Errors for requests to the LCU REST API
+#[derive(Debug, Clone)]
+pub enum RestClientError {
+    /// The API returned a non-success status code
+    HttpStatus(StatusCode),
+    /// There was an error deserializing the received data
+    DeserializationError(String),
+    /// All other errors are categorized as connection errors
+    ConnectionError(String),
+}
+
+impl From<reqwest::Error> for RestClientError {
+    fn from(error: reqwest::Error) -> Self {
+        if let Some(status) = error.status() {
+            return RestClientError::HttpStatus(status);
+        }
+        if error.is_decode() {
+            return RestClientError::DeserializationError(error.to_string());
+        }
+        RestClientError::ConnectionError(error.to_string())
+    }
+}
+
+impl Error for RestClientError {}
+
+impl Display for RestClientError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RestClientError::HttpStatus(status) => {
+                write!(f, "LCU REST API responded with status {}", status)
+            }
+            RestClientError::DeserializationError(err) => {
+                write!(f, "Failed to deserialize LCU REST response: {}", err)
+            }
+            RestClientError::ConnectionError(err) => {
+                write!(f, "LCU REST connection error: {}", err)
+            }
+        }
     }
 }
 
